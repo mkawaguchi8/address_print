@@ -6,7 +6,6 @@ from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 
 pdfmetrics.registerFont(UnicodeCIDFont("HeiseiMin-W3", isVertical=True))
 
-
 POST_CARD = {
     "size": (100 * mm, 148 * mm),  # (x,y) >> ハガキのサイズ
     "code_rect": (
@@ -21,32 +20,23 @@ POST_CARD = {
     ),
     "name_rect": (-64.25 * mm, -128 * mm, 28.5 * mm, 98 * mm),  # 氏名の枠 上:30mm 下:20mm 幅:文字サイズで後ほど調整
     "address_rect": (-25 * mm, -128 * mm, 28.5 * mm, 103 * mm),  # 住所の枠 上:30mm 下:20mm
-    "font_ratio": 1.3,
+    "font_ratio": 1.4,
 }
 
 
-def main():
-    data = "3642452,小川 香織,栃木県国立市戸山9丁目8番11号"
-    postal_code, name, address = data.split(",")
+def draw_address(c, address):
+    font_size = POST_CARD["address_rect"][3] / len(address)
+    c.setFont("HeiseiMin-W3", font_size)
 
-    c = canvas.Canvas("output_file/output.pdf", POST_CARD["size"])  # pdfファイルができる(空)
+    # 氏名の位置座標をPDF座標に変換
+    x_pdf = POST_CARD["address_rect"][0] + POST_CARD["size"][0] + POST_CARD["address_rect"][2] / 2
+    y_pdf = POST_CARD["address_rect"][1] + POST_CARD["size"][1] + POST_CARD["address_rect"][3]
 
-    padding = 1.0 * mm
+    # テキスト挿入
+    c.drawString(x_pdf, y_pdf, f"{address}")
 
-    for number, rect in zip(postal_code, POST_CARD["code_rect"]):
 
-        c.setFont("Helvetica", (rect[3] - padding * 2) * POST_CARD["font_ratio"])
-
-        # x = -55.7(郵便番号の1桁目) + 100()
-        # y = -20 + 148
-
-        x_pdf = rect[0] + POST_CARD["size"][0] + rect[2] / 2
-        y_pdf = rect[1] + POST_CARD["size"][1] + padding
-
-        c.drawCentredString(x_pdf, y_pdf, number)  # テキストを書き込む
-
-    # 氏名を追加
-
+def draw_name(c, name):
     name = f"{name} 様"
 
     # フォント指定 枠内に納まるように文字数で決める
@@ -60,23 +50,48 @@ def main():
     # テキスト挿入
     c.drawString(x_pdf, y_pdf, f"{name}")
 
-    # 住所を追加
-    # フォント指定 枠内に納まるように文字数で決める
-    font_size = POST_CARD["address_rect"][3] / len(address)
-    c.setFont("HeiseiMin-W3", font_size)
 
-    # 氏名の位置座標をPDF座標に変換
-    x_pdf = POST_CARD["address_rect"][0] + POST_CARD["size"][0] + POST_CARD["address_rect"][2] / 2
-    y_pdf = POST_CARD["address_rect"][1] + POST_CARD["size"][1] + POST_CARD["address_rect"][3]
+def draw_code(c, postal_code):
+    padding = 1.0 * mm
 
-    # テキスト挿入
-    c.drawString(x_pdf, y_pdf, f"{address}")
-   
-    c.showPage()
+    # 郵便番号を追加
+    for number, rect in zip(postal_code, POST_CARD["code_rect"]):
+        c.setFont("Helvetica", (rect[3] - padding * 2) * POST_CARD["font_ratio"])
+
+        # x = -55.7 + 100
+        # y = -20 + 148
+        x_pdf = rect[0] + POST_CARD["size"][0] + rect[2] / 2
+        y_pdf = rect[1] + POST_CARD["size"][1] + padding
+
+        # 番号を記述
+        c.drawCentredString(x_pdf, y_pdf, number)
+
+
+def main():
+    text_file_path = "output_file/output_text.pdf"
+    output_file_path = "output_file/output.pdf"
+    address_file_path = "input_file/address.csv"
+
+    with open(file=address_file_path, mode="r", encoding="utf-8") as f:
+        text = f.read()
+    rows = text.split("\n")
+
+    # サイズを指定してインスタンスを生成
+    c = canvas.Canvas(text_file_path, POST_CARD["size"])
+
+    for data in rows:
+        # 情報を使いやすいように変数に分割代入
+        postal_code, name, address = data.split(",")
+
+        draw_code(c, postal_code)
+        draw_name(c, name)
+        draw_address(c, address)
+
+        c.showPage()
     c.save()
 
     # 結合するPDFを読み取り
-    text_pdf = PdfReader("output_file/output.pdf")
+    text_pdf = PdfReader(text_file_path)
     postcard_pdf = PdfReader("input_file/post_card.pdf")
 
     # 各1ページ目を結合
@@ -87,7 +102,7 @@ def main():
     # 保存
     out_pdf = PdfWriter()
     out_pdf.add_page(postcard_page)
-    out_pdf.write("output_file/output.pdf")
+    out_pdf.write(output_file_path)
 
 
 if __name__ == "__main__":
