@@ -1,6 +1,10 @@
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from pypdf import PdfReader, PdfWriter
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+pdfmetrics.registerFont(UnicodeCIDFont("HeiseiMin-W3", isVertical=True))
 
 
 POST_CARD = {
@@ -40,6 +44,21 @@ def main():
         y_pdf = rect[1] + POST_CARD["size"][1] + padding
 
         c.drawCentredString(x_pdf, y_pdf, number)  # テキストを書き込む
+
+    # 氏名を追加
+
+    name = f"{name} 様"
+
+    # フォント指定 枠内に納まるように文字数で決める
+    font_size = POST_CARD["name_rect"][3] / len(name)
+    c.setFont("HeiseiMin-W3", font_size)
+
+    # 氏名の位置座標をPDF座標に変換
+    x_pdf = POST_CARD["name_rect"][0] + POST_CARD["size"][0] + POST_CARD["name_rect"][2] / 2
+    y_pdf = POST_CARD["name_rect"][1] + POST_CARD["size"][1] + POST_CARD["name_rect"][3]
+
+    # テキスト挿入
+    c.drawString(x_pdf, y_pdf, f"{name}")
 
     c.showPage()
     c.save()
