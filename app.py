@@ -20,7 +20,7 @@ POST_CARD = {
         (-13.7 * mm, -20 * mm, 5.7 * mm, 8 * mm),
     ),
     "name_rect": (-64.25 * mm, -128 * mm, 28.5 * mm, 98 * mm),  # 氏名の枠 上:30mm 下:20mm 幅:文字サイズで後ほど調整
-    "address_rect": (-20 * mm, -128 * mm, 28.5 * mm, 98 * mm),  # 住所の枠 上:30mm 下:20mm
+    "address_rect": (-25 * mm, -128 * mm, 28.5 * mm, 103 * mm),  # 住所の枠 上:30mm 下:20mm
     "font_ratio": 1.3,
 }
 
@@ -60,6 +60,18 @@ def main():
     # テキスト挿入
     c.drawString(x_pdf, y_pdf, f"{name}")
 
+    # 住所を追加
+    # フォント指定 枠内に納まるように文字数で決める
+    font_size = POST_CARD["address_rect"][3] / len(address)
+    c.setFont("HeiseiMin-W3", font_size)
+
+    # 氏名の位置座標をPDF座標に変換
+    x_pdf = POST_CARD["address_rect"][0] + POST_CARD["size"][0] + POST_CARD["address_rect"][2] / 2
+    y_pdf = POST_CARD["address_rect"][1] + POST_CARD["size"][1] + POST_CARD["address_rect"][3]
+
+    # テキスト挿入
+    c.drawString(x_pdf, y_pdf, f"{address}")
+   
     c.showPage()
     c.save()
 
